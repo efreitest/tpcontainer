@@ -1,5 +1,3 @@
-cat > Dockerfile.secure << 'EOF'
-
 # ==============================================
 
 # DOCKERFILE SÉCURISÉ - BONNES PRATIQUES
