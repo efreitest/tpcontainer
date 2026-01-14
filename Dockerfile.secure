@@ -66,4 +66,3 @@ ENTRYPOINT []
 
 # Commande
 CMD ["node", "src/server.js"]
-EOF
