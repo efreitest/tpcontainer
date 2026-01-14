@@ -1,0 +1,46 @@
+
+# Git
+.git
+.gitignore
+
+# Dependencies (reconstruites dans le container)
+node_modules
+
+# Tests
+*.test.js
+__tests__
+coverage
+
+# Documentation
+README.md
+docs/
+
+# Fichiers de configuration locaux
+.env
+.env.*
+*.local
+
+# Secrets (NE JAMAIS INCLURE)
+*.pem
+*.key
+secrets/
+credentials/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.tgz

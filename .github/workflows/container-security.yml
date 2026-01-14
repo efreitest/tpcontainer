@@ -1,0 +1,92 @@
+name: Container Security
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ============================================
+  # JOB 1 : Scanner le Dockerfile
+  # ============================================
+  dockerfile-scan:
+    name: 📋 Dockerfile Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'table'
+
+      - name: Fail on HIGH/CRITICAL misconfigs
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+  # ============================================
+  # JOB 2 : Build et scan de l'image
+  # ============================================
+  image-scan:
+    name: 🐳 Image Security
+    needs: dockerfile-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f Dockerfile.secure -t app:${{ github.sha }} .
+
+      - name: Scan image vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'app:${{ github.sha }}'
+          format: 'table'
+
+      - name: Scan for secrets
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'app:${{ github.sha }}'
+          scanners: 'secret'
+          format: 'table'
+
+      - name: Quality Gate - No CRITICAL vulns
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'app:${{ github.sha }}'
+          exit-code: '1'
+          severity: 'CRITICAL'
+          ignore-unfixed: true
+
+  # ============================================
+  # JOB 3 : Générer SBOM du container
+  # ============================================
+  sbom:
+    name: 📦 Generate SBOM
+    needs: image-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f Dockerfile.secure -t app:${{ github.sha }} .
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM
+        run: syft app:${{ github.sha }} -o cyclonedx-json > container-sbom.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-sbom
+          path: container-sbom.json
